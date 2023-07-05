@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>js-compiler - Smallest, simplest compilator</title>
+		<style>
+			body {font-family: monospace; padding: 0 15px;margin: 0; background: #b5c3cf;}
+			div {display: flex;  flex: 1}
+			body > div > div {flex-direction: column; }
+			body > div {flex-direction: row}
+			#eval, #code, textarea, #pretty, #ast {border: 1px solid #eee; margin: 5px; padding: 10px;}
+			p {margin: 0 0 10px}
+			textarea {width: calc(100% - 35px); height: 100%; min-height: 115px;}
+			#pretty_code {padding: 20px 50px; background: #253238; font-size: 20px; line-height: 1.5; font-family: "Fira Code", monospace;  text-shadow: 0 1px #0000004d;}
+			#ast {flex: 1; white-space: pre;}
+			#download a {font-size: 26px; color:navy}
+			/*skladnia */
+			.type-number {color: #f78661;}
+			.type-ident {color: #f8f8f2;}
+			.type-operator {color: #89ddfd;}
+			.type-keyword {color: #c792ea; font-style: italic;}
+		</style>
+		<script src="parser.js"></script> 
+		<script src="ast_tools.js"></script> 
+		<script src="build.js"></script> 
+	</head>
+<body>
+<h1>js-compiler - parsing algebraic expressions with variables.</h1>
+<h5> Code -> Lexer -> Parser -> AST -> syntax highlighting | interpreter | compiler</h5>
+<div>
+	<div>
+		<fieldset id="code"><legend>Code</legend>
+<textarea>
+ a =       2
+	b = 4 *a
+	c= 1 + 2  * a + 5
+	delta = b*b-4*a*c
+</textarea>
+		</fieldset>
+		<fieldset id="eval"><legend>Evaluate</legend><div id="eval_code"></div></fieldset>
+		<fieldset id="pretty"><legend>Code from AST</legend><p id="pretty_code"></p></fieldset>
+		<div id="download"><a class="build" href="">Compile and build</a></div>
+	</div>
+	<fieldset id="ast"><legend>AST</legend><div id="ast_tree"></div></fieldset>	
+</div> 
+
+
+<script>	
+	let log = function () { document.querySelector('#ast_tree').innerHTML += '<p>' + [...arguments].join(' ') + '</p>'}
+	/*
+		program -> instruction (nl instruction)*
+		instruction -> assign | expression | nl |call | if | for <-- reszty na razie nie ma
+		assign -> var := expression
+		var -> mut ident | ident
+		expression -> term +/- term  
+		term -> faktor | faktor * / faktor 
+		faktor -> number | ident | ( expression )
+	*/
+	
+	 window.run = () => {
+		let code  = document.querySelector('textarea').value;
+		document.querySelectorAll('#ast_tree, #pretty_code, #eval_code').forEach(el => el.innerHTML = '')
+		
+		console.time('lexer')
+		window.tokens = tokenize(code)
+		console.timeEnd('lexer')
+		
+		console.time('parser')
+		let ast = parse(tokens)
+		window.ast = ast;
+		console.timeEnd('parser')
+		
+		// ast
+		log(JSON.stringify(ast, null, 4));
+		//pretty
+		document.querySelector('#pretty_code').innerHTML = pretty(ast)
+		//interpreting
+		ast.forEach((instruction, i) => {
+			document.querySelector('#eval_code').innerHTML += 'Line ' + i + ': ' + evaluate(instruction) + '<br>'
+		})
+	}
+	
+	//run
+	run()	
+	document.querySelector('.build').addEventListener('click', (e) => {
+		e.preventDefault();
+		exe = []
+		compile2(ast)
+		build(exe)
+	}, false)
+	document.querySelector('textarea').oninput = run
+</script>
